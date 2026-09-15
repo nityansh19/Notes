@@ -1,69 +1,142 @@
-# Notes — Folio
+# Folio
 
-A private, desktop-first personal knowledge workspace, built with React, TypeScript, Vinext, Tiptap, and Cloudflare D1/R2. The working brand is **Folio**.
+Folio is a private, desktop-first personal knowledge workspace built for notes, projects, journals, tasks, code snippets, bookmarks, and connected thinking.
 
-## What works
+## Current product scope
 
-- Rich-text and Markdown editing, slash commands, headings, formatting, task lists, tables, collapsible blocks, code highlighting, images, and attachments.
-- Debounced autosave, explicit save, undo/redo, word counts, reading time, version history, and conflict rejection for overlapping edits.
-- Notes, quick captures, ideas, documents, tasks, code snippets, bookmarks, journals, projects, and a draggable canvas.
-- Custom collections, drag notes into collections, pins, favorites, archive, trash, restore, and confirmed permanent deletion.
-- Search across titles, text, tags and metadata; filters including `tag:python`, `type:journal`, `collection:college`, `created:today`, `before:2026-01-01`, and `after:2026-01-01`.
-- Grid, list, masonry, compact and timeline layouts; journal calendar, mood and location; project associations and milestones.
-- `[[Note title]]` connections, backlinks, and a zoomable/pannable graph.
-- Light/dark/system themes, accent color, editor typography, density, reduced-motion support, and dashboard module selection, ordering and widths.
-- Markdown/text and Folio JSON import; individual and bulk Markdown export; JSON backup; browser print-to-PDF.
-- Authenticated D1 data and R2 attachment storage. No private notes or uploaded files are committed to this repository.
+The application already includes rich editing, structured organization, search, backlinks, versioning, authenticated persistence, file handling, import/export, and a configurable workspace.
+
+## Core capabilities
+
+### Writing and editing
+
+- Rich-text and Markdown editing
+- Slash commands, headings, formatting, tables, task lists, collapsible blocks, and code highlighting
+- Images and attachments
+- Autosave plus explicit save
+- Undo/redo
+- Word count and reading time
+- Version history
+- Conflict rejection for overlapping edits
+
+### Organization
+
+- Notes, quick captures, ideas, documents, tasks, code snippets, bookmarks, journals, projects, and canvas items
+- Custom collections
+- Drag-and-drop collection assignment
+- Pins and favorites
+- Archive and trash
+- Restore and confirmed permanent deletion
+
+### Discovery and connections
+
+- Search across titles, text, tags, and metadata
+- Query filters such as `tag:python`, `type:journal`, and date filters
+- `[[Note title]]` links
+- Backlinks
+- Zoomable and pannable graph view
+- Project associations and milestones
+
+### Workspace customization
+
+- Grid, list, masonry, compact, and timeline layouts
+- Journal calendar
+- Light, dark, and system themes
+- Accent color and editor typography controls
+- Density and reduced-motion settings
+- Configurable dashboard modules
+
+### Import and export
+
+- Markdown/text import
+- Folio JSON import
+- Markdown export
+- JSON backup
+- Browser print-to-PDF
+
+## Tech stack
+
+- React
+- TypeScript
+- Vinext
+- Tiptap
+- Cloudflare D1
+- Cloudflare R2
+- Drizzle
+- Shadcn/Base UI primitives
+
+## Data and privacy model
+
+Folio is private by default.
+
+- Every API route checks authenticated identity.
+- Reads and writes are owner-scoped.
+- Foreign-origin mutations are rejected.
+- Uploaded files use opaque owner-scoped object keys.
+- Downloads are authenticated and MIME-restricted.
+- Private notes and uploaded files are not stored in this repository.
+
+The application is **not end-to-end encrypted**. Offline synchronization, collaborative editing, and third-party identity providers are not implemented.
+
+## Repository structure
+
+```text
+app/             Application routes, workspace UI, and global styles
+components/      Reusable interface components
+db/              Database schema and data helpers
+drizzle/         Generated database migrations
+lib/              Shared application logic
+public/           Static assets
+.openai/          Hosting configuration
+```
 
 ## Run locally
 
-Requires Node 22.13+ and npm.
+Requires Node.js 22.13+ and npm.
 
-```sh
+```bash
 npm ci
 npm run db:migrate:local
 npm run dev
 ```
 
-Open the printed localhost URL. The Sites development plugin provides a **local-only** test sign-in through `/signin-with-chatgpt`; it is never used as production authentication. The local database and uploads stay in ignored `.wrangler/` state.
+Then open the local development URL printed in the terminal.
 
-```sh
+## Validate the project
+
+```bash
 npm run typecheck
-npm run test:api   # while the local development server is running
+npm run test:api
 npm run build
 ```
 
-The API smoke test deliberately creates a temporary note and a small test attachment in the local test account. The note is deleted, and the attachment remains in Files so download behavior can be inspected. It refuses non-local test URLs.
+Run `npm run test:api` only while the local development server is active. The API smoke test uses local test data and refuses non-local test URLs.
 
-## Storage and authorization
+## Storage model
 
-`db/schema.ts` defines normalized items, collections, tags, item/tag joins, links, versions, attachments, activity, and settings. Typed item metadata holds journal mood/location, task completion, bookmark metadata, canvas cards, and project milestones. Related notes and tasks reference a project ID; collection membership references a collection ID.
+`db/schema.ts` defines normalized items, collections, tags, joins, links, versions, attachments, activity, and settings.
 
-Every API route checks authenticated identity; record reads and writes are owner-scoped. Mutations reject foreign origins. Files use opaque owner-scoped object keys, authenticated downloads, MIME restrictions, `nosniff`, and attachment disposition for active document formats. Notes are private by default. The hosted runtime must sit behind the Sites authenticated dispatcher; do not expose the Worker directly and trust arbitrary `oai-authenticated-user-*` headers.
+Typed metadata handles item-specific fields such as journal mood/location, task completion, bookmark information, canvas cards, and project milestones.
 
-Storage is **not end-to-end encrypted**. Encryption key management, offline synchronization, collaborative editing, and third-party identity providers are not implemented. Sites manages the signed-in session; the app can sign out of the current session.
+## Practical limits
 
-## Import, export and practical limits
-
-- Folio JSON backups include notes, metadata, collections and preferences. Attachment bytes must be downloaded separately from Files; a JSON import does not re-upload them.
-- Bookmark titles/descriptions are enriched in the browser when the destination permits CORS. Otherwise the hostname is used, and title/description remain editable. No server fetches arbitrary bookmark URLs.
-- Search renders results incrementally and offscreen cards use content visibility. The current API loads the user's note index and content together; very large vaults should move to server-side pagination and full-text indexing before scaling beyond personal use.
-- The graph shows up to 150 filtered nodes at a time to maintain legibility. Filter by collection or title/tag to explore a larger vault.
-- Interface copy is English. Keyboard shortcuts are documented in Settings and currently fixed.
-- File sizes remain subject to the hosting platform's request and memory limits; no subscription or paid storage quotas are introduced by this app.
-- WebMCP `create_note` is feature-detected and uses the same save flow as the UI. Its browser contract could not be validated in this environment.
+- Very large vaults should eventually move toward server-side pagination and full-text indexing.
+- The graph renders a bounded filtered set to keep the visualization readable.
+- Attachment sizes remain subject to hosting-platform request and memory limits.
+- Bookmark enrichment depends on the destination allowing browser CORS access.
+- Interface copy is currently English.
 
 ## Development and deployment
 
-The `.openai/hosting.json` manifest declares logical `DB` (D1) and `FILES` (R2) bindings and the associated private Site. Sites owns production resources and authentication. Build output is a Cloudflare Worker plus client assets. Production migrations are generated by Drizzle and applied by Sites, never at request time.
+The `.openai/hosting.json` manifest declares the D1 and R2 bindings used by the hosted application. Production migrations are generated with Drizzle and applied through the hosting workflow rather than at request time.
 
-```sh
+```bash
 npm run db:generate
 npm run db:migrate:local
 ```
 
-Review new SQL before publishing. Never rewrite an applied migration. The local migration helper only applies missing migrations and uses project-local state.
+Review generated SQL before publishing and do not rewrite migrations that have already been applied.
 
-UI tokens live in `app/globals.css`; the brand label is in `app/workspace.tsx`, metadata in `app/layout.tsx`, and the icon in `public/favicon.svg`. The app uses the installed accessible Shadcn/Base UI primitives for dialogs, navigation, commands, tabs, choices, switches, and confirmations.
+## Product direction
 
-The initial implementation was typechecked and production-built, with API coverage for authentication, origin checks, persistence, historical tags, concurrent edits, invalid documents, file protection, trash and permanent deletion. Browser visual/interaction testing was not performed.
+Folio is meant to feel like one coherent personal knowledge system, not a collection of disconnected note-taking screens. New features should strengthen capture, organization, retrieval, or connection without making the workspace harder to understand.
